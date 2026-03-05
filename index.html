@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Générateur de Situations-Problèmes</title>
+  
+  <!-- Tailwind CSS pour le style -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- React et ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  
+  <!-- Babel pour compiler le JSX dans le navigateur -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #c7c7cc; border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #a1a1aa; }
+    .animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans">
+  
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // --- CONSTANTES ET BASES DE DONNÉES ---
+
+    const OBJECTIFS = [
+      "Créer une nouvelle situation mathématique complète",
+      "Adapter ou différencier une situation existante",
+      "Créer un problème clé en main à partir d'un problème existant"
+    ];
+
+    const CYCLES = [
+      { id: 1, label: "1er cycle", annees: [{ id: 1, label: "1re année" }, { id: 2, label: "2e année" }] },
+      { id: 2, label: "2e cycle", annees: [{ id: 3, label: "3e année" }, { id: 4, label: "4e année" }] },
+      { id: 3, label: "3e cycle", annees: [{ id: 5, label: "5e année" }, { id: 6, label: "6e année" }] }
+    ];
+
+    const TONS = [
+      "vocabulaire adapté à des élèves de 1re année du primaire",
+      "vocabulaire adapté à des élèves de 2e année du primaire",
+      "vocabulaire adapté à des élèves de 3e année du primaire",
+      "vocabulaire adapté à des élèves de 4e année du primaire",
+      "vocabulaire adapté à des élèves de 5e année du primaire",
+      "vocabulaire adapté à des élèves de 6e année du primaire"
+    ];
+
+    const CONCEPTS = [
+      // A. ARITHMÉTIQUE (Nombres naturels)
+      { id: "a1", categorie: "A. ARITHMÉTIQUE", sousCategorie: "1. Nombres naturels", texte: "Compter ou réciter la comptine des nombres par ordre croissant (1er cycle)", anneesBleues: [1] },
+      { id: "a2", categorie: "A. ARITHMÉTIQUE", sousCategorie: "1. Nombres naturels", texte: "Compter ou réciter la comptine par ordre décroissant (1er cycle)", anneesBleues: [2] },
+      { id: "a3", categorie: "A. ARITHMÉTIQUE", sousCategorie: "1. Nombres naturels", texte: "Compter par bonds (1er et 2e cycles)", anneesBleues: [2, 3] },
+      { id: "a4", categorie: "A. ARITHMÉTIQUE", sousCategorie: "1. Nombres naturels", texte: "Dénombrer des collections réelles ou dessinées (1er cycle)", anneesBleues: [1] },
+      { id: "a5", categorie: "A. ARITHMÉTIQUE", sousCategorie: "1. Nombres naturels", texte: "Lire et écrire tout nombre naturel (1er, 2e et 3e cycles)", anneesBleues: [1, 3, 5] },
+      { id: "a6", categorie: "A. ARITHMÉTIQUE", sousCategorie: "1. Nombres naturels", texte: "Représenter des nombres naturels : accent mis sur le groupement (1er cycle)", anneesBleues: [1] },
+      { id: "a7", categorie: "A. ARITHMÉTIQUE", sousCategorie: "1. Nombres naturels", texte: "Représenter des nombres naturels : accent mis sur l’échange (base 10) (1er et 2e cycles)", anneesBleues: [2, 3] },
+      { id: "a8", categorie: "A. ARITHMÉTIQUE", sousCategorie: "1. Nombres naturels", texte: "Représenter des nombres naturels : accent mis sur la valeur de position (1er et 2e cycles)", anneesBleues: [2, 4] },
+      { id: "a9", categorie: "A. ARITHMÉTIQUE", sousCategorie: "1. Nombres naturels", texte: "Représenter la puissance d’un nombre naturel (3e cycle)", anneesBleues: [6] },
+      { id: "a10", categorie: "A. ARITHMÉTIQUE", sousCategorie: "1. Nombres naturels", texte: "Composer et décomposer un nombre naturel (1er et 2e cycles)", anneesBleues: [2, 4] },
+      { id: "a11", categorie: "A. ARITHMÉTIQUE", sousCategorie: "1. Nombres naturels", texte: "Reconnaître des expressions équivalentes (ex: $52 = 40 + 12$) (1er cycle)", anneesBleues: [2] },
+      { id: "a12", categorie: "A. ARITHMÉTIQUE", sousCategorie: "1. Nombres naturels", texte: "Comparer entre eux des nombres naturels (1er, 2e et 3e cycles)", anneesBleues: [1, 3, 5] },
+      { id: "a13", categorie: "A. ARITHMÉTIQUE", sousCategorie: "1. Nombres naturels", texte: "Ordonner des nombres naturels (1er, 2e et 3e cycles)", anneesBleues: [2, 4, 6] },
+      { id: "a14", categorie: "A. ARITHMÉTIQUE", sousCategorie: "1. Nombres naturels", texte: "Décrire des régularités numériques (ex: pairs/impairs, divisibilité) (1er, 2e et 3e cycles)", anneesBleues: [2, 4, 6] },
+      { id: "a15", categorie: "A. ARITHMÉTIQUE", sousCategorie: "1. Nombres naturels", texte: "Situer des nombres naturels sur un axe (droite numérique) (1er, 2e et 3e cycles)", anneesBleues: [2, 3, 5] },
+      { id: "a16", categorie: "A. ARITHMÉTIQUE", sousCategorie: "1. Nombres naturels", texte: "Identifier les propriétés des nombres naturels (pair, impair, premier, composé) (1er, 2e et 3e cycles)", anneesBleues: [2, 4, 6] },
+      { id: "a17", categorie: "A. ARITHMÉTIQUE", sousCategorie: "1. Nombres naturels", texte: "Classifier des nombres naturels de diverses façons (2e cycle)", anneesBleues: [3] },
+      { id: "a18", categorie: "A. ARITHMÉTIQUE", sousCategorie: "1. Nombres naturels", texte: "Faire une approximation d’une collection (estimer) (1er, 2e et 3e cycles)", anneesBleues: [2, 4, 5] },
+
+      // A. ARITHMÉTIQUE (Fractions)
+      { id: "f1", categorie: "A. ARITHMÉTIQUE", sousCategorie: "2. Fractions", texte: "Reconnaître des fractions provenant de la vie courante (2e cycle)", anneesBleues: [3] },
+      { id: "f2", categorie: "A. ARITHMÉTIQUE", sousCategorie: "2. Fractions", texte: "Représenter une fraction de différentes façons (partie d'un tout/collection) (2e et 3e cycles)", anneesBleues: [4, 5] },
+      { id: "f3", categorie: "A. ARITHMÉTIQUE", sousCategorie: "2. Fractions", texte: "Associer une fraction à une partie d’un tout ou d'une collection (2e cycle)", anneesBleues: [4] },
+      { id: "f4", categorie: "A. ARITHMÉTIQUE", sousCategorie: "2. Fractions", texte: "Reconnaître les différents sens de la fraction (partage, division, rapport) (2e et 3e cycles)", anneesBleues: [4, 6] },
+      { id: "f5", categorie: "A. ARITHMÉTIQUE", sousCategorie: "2. Fractions", texte: "Distinguer le rôle du numérateur et du dénominateur (2e et 3e cycles)", anneesBleues: [4, 5] },
+      { id: "f6", categorie: "A. ARITHMÉTIQUE", sousCategorie: "2. Fractions", texte: "Lire et écrire une fraction (2e et 3e cycles)", anneesBleues: [3, 5] },
+      { id: "f7", categorie: "A. ARITHMÉTIQUE", sousCategorie: "2. Fractions", texte: "Comparer une fraction à 0, à $\\frac{1}{2}$ ou à 1 (2e cycle)", anneesBleues: [4] },
+      { id: "f8", categorie: "A. ARITHMÉTIQUE", sousCategorie: "2. Fractions", texte: "Vérifier l’équivalence de deux fractions (2e et 3e cycles)", anneesBleues: [4, 6] },
+      { id: "f9", categorie: "A. ARITHMÉTIQUE", sousCategorie: "2. Fractions", texte: "Associer un nombre décimal ou un pourcentage à une fraction (3e cycle)", anneesBleues: [6] },
+      { id: "f10", categorie: "A. ARITHMÉTIQUE", sousCategorie: "2. Fractions", texte: "Ordonner des fractions (dénominateurs identiques ou multiples) (2e et 3e cycles)", anneesBleues: [4, 6] },
+      { id: "f11", categorie: "A. ARITHMÉTIQUE", sousCategorie: "2. Fractions", texte: "Situer des fractions sur un axe (2e et 3e cycles)", anneesBleues: [4, 5] },
+      { id: "f12", categorie: "A. ARITHMÉTIQUE", sousCategorie: "2. Fractions", texte: "Reconnaître des fractions irréductibles (3e cycle)", anneesBleues: [6] },
+
+      // A. ARITHMÉTIQUE (Nombres décimaux)
+      { id: "d1", categorie: "A. ARITHMÉTIQUE", sousCategorie: "3. Nombres décimaux", texte: "Représenter des nombres décimaux (matériel concret ou dessins) (2e et 3e cycles)", anneesBleues: [3, 5] },
+      { id: "d2", categorie: "A. ARITHMÉTIQUE", sousCategorie: "3. Nombres décimaux", texte: "Reconnaître des représentations équivalentes de nombres décimaux (2e et 3e cycles)", anneesBleues: [4, 5] },
+      { id: "d3", categorie: "A. ARITHMÉTIQUE", sousCategorie: "3. Nombres décimaux", texte: "Lire et écrire des nombres écrits en notation décimale (2e et 3e cycles)", anneesBleues: [3, 5] },
+      { id: "d4", categorie: "A. ARITHMÉTIQUE", sousCategorie: "3. Nombres décimaux", texte: "Reconnaître le rôle de la virgule et la valeur de position (2e et 3e cycles)", anneesBleues: [4, 5] },
+      { id: "d5", categorie: "A. ARITHMÉTIQUE", sousCategorie: "3. Nombres décimaux", texte: "Composer et décomposer un nombre décimal (2e et 3e cycles)", anneesBleues: [4, 6] },
+      { id: "d6", categorie: "A. ARITHMÉTIQUE", sousCategorie: "3. Nombres décimaux", texte: "Reconnaître des expressions numériques équivalentes (2e et 3e cycles)", anneesBleues: [4, 6] },
+      { id: "d7", categorie: "A. ARITHMÉTIQUE", sousCategorie: "3. Nombres décimaux", texte: "Situer des nombres décimaux sur un axe (2e et 3e cycles)", anneesBleues: [4, 5] },
+      { id: "d8", categorie: "A. ARITHMÉTIQUE", sousCategorie: "3. Nombres décimaux", texte: "Comparer entre eux des nombres décimaux (2e et 3e cycles)", anneesBleues: [4, 6] },
+      { id: "d9", categorie: "A. ARITHMÉTIQUE", sousCategorie: "3. Nombres décimaux", texte: "Faire une approximation (arrondir, tronquer) (3e cycle)", anneesBleues: [6] },
+      { id: "d10", categorie: "A. ARITHMÉTIQUE", sousCategorie: "3. Nombres décimaux", texte: "Ordonner des nombres décimaux (2e et 3e cycles)", anneesBleues: [4, 6] },
+      { id: "d11", categorie: "A. ARITHMÉTIQUE", sousCategorie: "3. Nombres décimaux", texte: "Associer une fraction ou un pourcentage à un nombre décimal (2e et 3e cycles)", anneesBleues: [4, 6] },
+
+      // A. ARITHMÉTIQUE (Nombres entiers relatifs)
+      { id: "e1", categorie: "A. ARITHMÉTIQUE", sousCategorie: "4. Nombres entiers (Relatifs)", texte: "Représenter des nombres entiers (3e cycle)", anneesBleues: [5] },
+      { id: "e2", categorie: "A. ARITHMÉTIQUE", sousCategorie: "4. Nombres entiers (Relatifs)", texte: "Lire et écrire des nombres entiers (3e cycle)", anneesBleues: [5] },
+      { id: "e3", categorie: "A. ARITHMÉTIQUE", sousCategorie: "4. Nombres entiers (Relatifs)", texte: "Situer des nombres entiers sur un axe (3e cycle)", anneesBleues: [6] },
+      { id: "e4", categorie: "A. ARITHMÉTIQUE", sousCategorie: "4. Nombres entiers (Relatifs)", texte: "Comparer et ordonner des nombres entiers (3e cycle)", anneesBleues: [6] },
+
+      // A. ARITHMÉTIQUE (Opérations - Sens et calcul)
+      { id: "o1", categorie: "A. ARITHMÉTIQUE", sousCategorie: "5. Opérations (Sens et Calcul)", texte: "Reconnaître l’opération (addition, soustraction, mult., div.) à effectuer (1er, 2e et 3e cycles)", anneesBleues: [1, 3, 5] },
+      { id: "o2", categorie: "A. ARITHMÉTIQUE", sousCategorie: "5. Opérations (Sens et Calcul)", texte: "Traduire une situation d'addition ou de soustraction (ajout, retrait, réunion, comparaison) (1er cycle)", anneesBleues: [2] },
+      { id: "o3", categorie: "A. ARITHMÉTIQUE", sousCategorie: "5. Opérations (Sens et Calcul)", texte: "Traduire une situation par une composition de transformations (ex: j'ai gagné 2, puis perdu 3) (2e et 3e cycles)", anneesBleues: [4, 5] },
+      { id: "o4", categorie: "A. ARITHMÉTIQUE", sousCategorie: "5. Opérations (Sens et Calcul)", texte: "Traduire une situation de multiplication ou division (disposition rectangulaire, partage) (2e et 3e cycles)", anneesBleues: [3, 5] },
+      { id: "o5", categorie: "A. ARITHMÉTIQUE", sousCategorie: "5. Opérations (Sens et Calcul)", texte: "Établir la relation d’égalité entre des expressions numériques (1er, 2e et 3e cycles)", anneesBleues: [2, 4, 6] },
+      { id: "o6", categorie: "A. ARITHMÉTIQUE", sousCategorie: "5. Opérations (Sens et Calcul)", texte: "Déterminer des équivalences numériques (commutativité, associativité) (1er, 2e et 3e cycles)", anneesBleues: [2, 4, 6] },
+      { id: "o7", categorie: "A. ARITHMÉTIQUE", sousCategorie: "5. Opérations (Sens et Calcul)", texte: "Déterminer des équivalences (distributivité) (3e cycle)", anneesBleues: [6] },
+      { id: "o8", categorie: "A. ARITHMÉTIQUE", sousCategorie: "5. Opérations (Sens et Calcul)", texte: "Traduire une situation par une suite d’opérations (chaînes d'opérations) (2e et 3e cycles)", anneesBleues: [4, 6] },
+      { id: "o9", categorie: "A. ARITHMÉTIQUE", sousCategorie: "5. Opérations (Sens et Calcul)", texte: "Calcul mental : Tables d'addition ($0+0$ à $10+10$) et soustractions correspondantes (1er cycle)", anneesBleues: [2] },
+      { id: "o10", categorie: "A. ARITHMÉTIQUE", sousCategorie: "5. Opérations (Sens et Calcul)", texte: "Calcul mental : Tables de multiplication ($0 \\times 0$ à $10 \\times 10$) et divisions correspondantes (2e et 3e cycles)", anneesBleues: [4, 5] },
+      { id: "o11", categorie: "A. ARITHMÉTIQUE", sousCategorie: "5. Opérations (Sens et Calcul)", texte: "Calcul écrit : Addition et soustraction de nombres naturels (1er et 2e cycles)", anneesBleues: [2, 3] },
+      { id: "o12", categorie: "A. ARITHMÉTIQUE", sousCategorie: "5. Opérations (Sens et Calcul)", texte: "Calcul écrit : Multiplication de nombres naturels par un chiffre (2e cycle)", anneesBleues: [4] },
+      { id: "o13", categorie: "A. ARITHMÉTIQUE", sousCategorie: "5. Opérations (Sens et Calcul)", texte: "Calcul écrit : Multiplication de nombres naturels par plusieurs chiffres (3e cycle)", anneesBleues: [5] },
+      { id: "o14", categorie: "A. ARITHMÉTIQUE", sousCategorie: "5. Opérations (Sens et Calcul)", texte: "Calcul écrit : division de nombres naturels par un diviseur à un chiffre (2e cycle)", anneesBleues: [4] },
+      { id: "o15", categorie: "A. ARITHMÉTIQUE", sousCategorie: "5. Opérations (Sens et Calcul)", texte: "Calcul écrit : division de nombres naturels par un diviseur à plusieurs chiffres (3e cycle)", anneesBleues: [6] },
+      { id: "o16", categorie: "A. ARITHMÉTIQUE", sousCategorie: "5. Opérations (Sens et Calcul)", texte: "Calcul écrit : Addition et soustraction de nombres décimaux (2e et 3e cycles)", anneesBleues: [4, 5] },
+      { id: "o17", categorie: "A. ARITHMÉTIQUE", sousCategorie: "5. Opérations (Sens et Calcul)", texte: "Calcul écrit : Multiplication et division de nombres décimaux (3e cycle)", anneesBleues: [6] },
+
+      // B. GÉOMÉTRIE (Espace)
+      { id: "g1", categorie: "B. GÉOMÉTRIE", sousCategorie: "1. Espace", texte: "Se repérer et repérer des objets dans l’espace (relations spatiales) (1er cycle)", anneesBleues: [1] },
+      { id: "g2", categorie: "B. GÉOMÉTRIE", sousCategorie: "1. Espace", texte: "Effectuer des activités de repérage sur un plan, une carte ou une grille (1er et 2e cycles)", anneesBleues: [2, 3] },
+      { id: "g3", categorie: "B. GÉOMÉTRIE", sousCategorie: "1. Espace", texte: "Se repérer dans le plan cartésien (1er quadrant) (2e cycle)", anneesBleues: [4] },
+      { id: "g4", categorie: "B. GÉOMÉTRIE", sousCategorie: "1. Espace", texte: "Se repérer dans le plan cartésien (4 quadrants) (3e cycle)", anneesBleues: [6] },
+
+      // B. GÉOMÉTRIE (Solides)
+      { id: "gs1", categorie: "B. GÉOMÉTRIE", sousCategorie: "2. Solides", texte: "Comparer des objets de l'environnement à des solides (1er cycle)", anneesBleues: [1] },
+      { id: "gs2", categorie: "B. GÉOMÉTRIE", sousCategorie: "2. Solides", texte: "Identifier des solides (boule, cube, cylindre, cône, prisme, pyramide) (1er cycle)", anneesBleues: [2] },
+      { id: "gs3", categorie: "B. GÉOMÉTRIE", sousCategorie: "2. Solides", texte: "Décrire des solides (faces, sommets, arêtes) (2e cycle)", anneesBleues: [3] },
+      { id: "gs4", categorie: "B. GÉOMÉTRIE", sousCategorie: "2. Solides", texte: "Comparer et construire des solides (1er et 2e cycles)", anneesBleues: [2, 4] },
+      { id: "gs5", categorie: "B. GÉOMÉTRIE", sousCategorie: "2. Solides", texte: "Identifier le développement de solides (prisme et pyramide) (2e et 3e cycles)", anneesBleues: [4, 5] },
+      { id: "gs6", categorie: "B. GÉOMÉTRIE", sousCategorie: "2. Solides", texte: "Associer un solide à son développement (et vice-versa) (2e et 3e cycles)", anneesBleues: [4, 5] },
+      { id: "gs7", categorie: "B. GÉOMÉTRIE", sousCategorie: "2. Solides", texte: "Tester la relation d'Euler (3e cycle)", anneesBleues: [6] },
+
+      // B. GÉOMÉTRIE (Figures planes)
+      { id: "gf1", categorie: "B. GÉOMÉTRIE", sousCategorie: "3. Figures planes", texte: "Identifier des figures planes (carré, rectangle, triangle, cercle, losange) (1er cycle)", anneesBleues: [2] },
+      { id: "gf2", categorie: "B. GÉOMÉTRIE", sousCategorie: "3. Figures planes", texte: "Décrire des figures planes (côtés, sommets, angles) (2e cycle)", anneesBleues: [3] },
+      { id: "gf3", categorie: "B. GÉOMÉTRIE", sousCategorie: "3. Figures planes", texte: "Classifier les polygones (convexes, non convexes) (2e cycle)", anneesBleues: [4] },
+      { id: "gf4", categorie: "B. GÉOMÉTRIE", sousCategorie: "3. Figures planes", texte: "Classifier les quadrilatères (trapèze, parallélogramme, rectangle, losange, carré) (2e et 3e cycles)", anneesBleues: [4, 5] },
+      { id: "gf5", categorie: "B. GÉOMÉTRIE", sousCategorie: "3. Figures planes", texte: "Classifier les triangles (scalène, isocèle, équilatéral, rectangle) (3e cycle)", anneesBleues: [6] },
+      { id: "gf6", categorie: "B. GÉOMÉTRIE", sousCategorie: "3. Figures planes", texte: "Décrire le cercle (rayon, diamètre, circonférence, angle au centre) (3e cycle)", anneesBleues: [6] },
+
+      // B. GÉOMÉTRIE (Frises et dallages)
+      { id: "gfr1", categorie: "B. GÉOMÉTRIE", sousCategorie: "4. Frises et dallages", texte: "Identifier des régularités dans une frise ou un dallage (1er cycle)", anneesBleues: [1] },
+      { id: "gfr2", categorie: "B. GÉOMÉTRIE", sousCategorie: "4. Frises et dallages", texte: "Poursuivre une frise ou un dallage (1er cycle)", anneesBleues: [2] },
+      { id: "gfr3", categorie: "B. GÉOMÉTRIE", sousCategorie: "4. Frises et dallages", texte: "Produire des frises et des dallages (réflexion) (2e cycle)", anneesBleues: [4] },
+      { id: "gfr4", categorie: "B. GÉOMÉTRIE", sousCategorie: "4. Frises et dallages", texte: "Produire des frises et des dallages (translation, rotation) (3e cycle)", anneesBleues: [6] },
+
+      // C. MESURE (Longueurs)
+      { id: "m1", categorie: "C. MESURE", sousCategorie: "1. Longueurs", texte: "Estimer et mesurer avec des unités non conventionnelles (1er cycle)", anneesBleues: [2] },
+      { id: "m2", categorie: "C. MESURE", sousCategorie: "1. Longueurs", texte: "Estimer et mesurer avec des unités conventionnelles (m, dm, cm, mm, km) (1er, 2e et 3e cycles)", anneesBleues: [2, 3, 5] },
+      { id: "m3", categorie: "C. MESURE", sousCategorie: "1. Longueurs", texte: "Établir des relations entre les unités de mesure de longueur (2e et 3e cycles)", anneesBleues: [4, 6] },
+      { id: "m4", categorie: "C. MESURE", sousCategorie: "1. Longueurs", texte: "Calculer le périmètre de figures planes (2e et 3e cycles)", anneesBleues: [4, 5] },
+
+      // C. MESURE (Surfaces - Aire)
+      { id: "m5", categorie: "C. MESURE", sousCategorie: "2. Surfaces (Aire)", texte: "Estimer et mesurer la surface avec des unités non conventionnelles (2e cycle)", anneesBleues: [3] },
+      { id: "m6", categorie: "C. MESURE", sousCategorie: "2. Surfaces (Aire)", texte: "Estimer et mesurer la surface avec des unités conventionnelles ($m^2, dm^2, cm^2$) (2e et 3e cycles)", anneesBleues: [4, 5] },
+      { id: "m7", categorie: "C. MESURE", sousCategorie: "2. Surfaces (Aire)", texte: "Calculer l’aire de rectangles, carrés, triangles (3e cycle)", anneesBleues: [6] },
+
+      // C. MESURE (Volumes)
+      { id: "m8", categorie: "C. MESURE", sousCategorie: "3. Volumes", texte: "Estimer et mesurer le volume avec des unités non conventionnelles (2e cycle)", anneesBleues: [4] },
+      { id: "m9", categorie: "C. MESURE", sousCategorie: "3. Volumes", texte: "Estimer et mesurer le volume avec des unités conventionnelles ($m^3, dm^3, cm^3$) (3e cycle)", anneesBleues: [5] },
+      { id: "m10", categorie: "C. MESURE", sousCategorie: "3. Volumes", texte: "Calculer le volume de prismes droits (3e cycle)", anneesBleues: [6] },
+
+      // C. MESURE (Angles)
+      { id: "m11", categorie: "C. MESURE", sousCategorie: "4. Angles", texte: "Comparer des angles (droit, aigu, obtus) (2e cycle)", anneesBleues: [4] },
+      { id: "m12", categorie: "C. MESURE", sousCategorie: "4. Angles", texte: "Estimer et mesurer des angles en degrés (3e cycle)", anneesBleues: [6] },
+
+      // C. MESURE (Capacités et Masses)
+      { id: "m13", categorie: "C. MESURE", sousCategorie: "5. Capacités et Masses", texte: "Estimer et mesurer la capacité (L, mL) (2e et 3e cycles)", anneesBleues: [4, 5] },
+      { id: "m14", categorie: "C. MESURE", sousCategorie: "5. Capacités et Masses", texte: "Estimer et mesurer la masse (kg, g) (2e et 3e cycles)", anneesBleues: [4, 5] },
+      { id: "m15", categorie: "C. MESURE", sousCategorie: "5. Capacités et Masses", texte: "Établir des relations entre les unités de mesure (2e et 3e cycles)", anneesBleues: [4, 6] },
+
+      // C. MESURE (Temps et Température)
+      { id: "m16", categorie: "C. MESURE", sousCategorie: "6. Temps et Température", texte: "Estimer et mesurer le temps (unités conventionnelles) (1er, 2e et 3e cycles)", anneesBleues: [2, 3, 5] },
+      { id: "m17", categorie: "C. MESURE", sousCategorie: "6. Temps et Température", texte: "Établir des relations entre les unités de temps (2e et 3e cycles)", anneesBleues: [4, 6] },
+      { id: "m18", categorie: "C. MESURE", sousCategorie: "6. Temps et Température", texte: "Estimer et mesurer la température (°C) (1er, 2e et 3e cycles)", anneesBleues: [2, 4, 5] },
+
+      // D. STATISTIQUE ET PROBABILITÉ (Statistique)
+      { id: "st1", categorie: "D. STATISTIQUE ET PROBABILITÉ", sousCategorie: "1. Statistique", texte: "Formuler des questions d’enquête (1er, 2e et 3e cycles)", anneesBleues: [1, 3, 5] },
+      { id: "st2", categorie: "D. STATISTIQUE ET PROBABILITÉ", sousCategorie: "1. Statistique", texte: "Collecter, décrire et organiser des données (1er, 2e et 3e cycles)", anneesBleues: [2, 4, 6] },
+      { id: "st3", categorie: "D. STATISTIQUE ET PROBABILITÉ", sousCategorie: "1. Statistique", texte: "Interpréter des données à l'aide d'un tableau, pictogramme ou diagramme à bandes (1er et 2e cycles)", anneesBleues: [2, 4] },
+      { id: "st4", categorie: "D. STATISTIQUE ET PROBABILITÉ", sousCategorie: "1. Statistique", texte: "Interpréter des données à l'aide d'un diagramme à ligne brisée (2e et 3e cycles)", anneesBleues: [4, 5] },
+      { id: "st5", categorie: "D. STATISTIQUE ET PROBABILITÉ", sousCategorie: "1. Statistique", texte: "Interpréter des données à l'aide d'un diagramme circulaire (3e cycle)", anneesBleues: [6] },
+      { id: "st6", categorie: "D. STATISTIQUE ET PROBABILITÉ", sousCategorie: "1. Statistique", texte: "Calculer et interpréter la moyenne arithmétique (3e cycle)", anneesBleues: [6] },
+
+      // D. STATISTIQUE ET PROBABILITÉ (Probabilité)
+      { id: "st7", categorie: "D. STATISTIQUE ET PROBABILITÉ", sousCategorie: "2. Probabilité", texte: "Expérimenter des activités liées au hasard (prédictions qualitatives) (1er cycle)", anneesBleues: [2] },
+      { id: "st8", categorie: "D. STATISTIQUE ET PROBABILITÉ", sousCategorie: "2. Probabilité", texte: "Dénombrer les résultats possibles d’une expérience aléatoire (2e et 3e cycles)", anneesBleues: [4, 5] },
+      { id: "st9", categorie: "D. STATISTIQUE ET PROBABILITÉ", sousCategorie: "2. Probabilité", texte: "Calculer la probabilité d’un événement (prédictions quantitatives) (3e cycle)", anneesBleues: [6] },
+      { id: "st10", categorie: "D. STATISTIQUE ET PROBABILITÉ", sousCategorie: "2. Probabilité", texte: "Comparer des résultats théoriques et expérimentaux (3e cycle)", anneesBleues: [6] }
+    ];
+
+    const SUPPORTS_VISUELS = [
+      "Diagramme à bandes", "Diagramme à ligne brisée", "Diagramme à pictogrammes", 
+      "Diagramme circulaire", "Dessins de polygones", "Représentation des nombres (matériel de manipulation)", 
+      "Représentation de fractions", "Tableau", "Tableau de numération", "Plan cartésien"
+    ];
+
+    const DIFFERENCIATIONS = [
+      "Raccourcir le texte", "Allonger le texte (mise en situation)", "Simplifier le vocabulaire",
+      "Présenter les informations sous la forme d'une liste à puces", "Diminuer le nombre d'actions dans la tâche",
+      "Diminuer le nombres de données et de contraintes", "Diminuer le nombre d’étapes dans le problème"
+    ];
+
+    const LIEUX = [
+      "À l’école", "Dans l’école", "Cour de récréation", "Gymnase", "Dans la classe", 
+      "Cafétéria", "À l’extérieur", "Sortie au zoo", "Parc d’attraction", "Magasinage/boutique", 
+      "Épicerie", "Bibliothèque", "Autre"
+    ];
+
+    const THEMES = [
+      "Une visite de zoo", "Le Marché", "La ferme", "Une fête d’anniversaire", "Un voyage en train", 
+      "La météo", "Le jardinage", "Un pique-nique", "Une course à vélo", "Une journée au parc", 
+      "La cuisine", "La collecte de déchets", "Les animaux", "Un carnaval", "Une chasse au trésor", 
+      "La construction d’une cabane", "Le supermarché", "L’exploration spatiale", "Les saisons", 
+      "La nature", "Le sport", "Le théâtre", "Un spectacle de classe", "Magasin de jouets", 
+      "Trajet pour se rendre à l’école", "Atelier d’arts plastiques", "Alimentations", "Camping", 
+      "L’automne", "L’hiver", "Noël", "Pâques", "La Saint-Valentin", "La saison estivale", 
+      "Le printemps", "La cabane à sucre", "Autre"
+    ];
+
+    // Modèle de référence injecté "en dur" dans la requête IA
+    const EXEMPLE_CAHIER_DEFAUT = `Planification de la journée
+Nombre d'élèves : ____________
+
+1. Activités supplémentaires :
+| Activité choisie | Coût par élève | Coût pour tous les élèves |
+|------------------|----------------|---------------------------|
+|                  |                |                           |
+
+2. Bon de commande pour les repas :
+| Choix des repas | Nombres d'élèves | Coût pour tous les élèves |
+|-----------------|------------------|---------------------------|
+| Repas Santé     |                  |                           |
+| Repas Chaud     |                  |                           |
+| Repas Salade    |                  |                           |
+| Repas Gourmand  |                  |                           |
+|                 | Coût total :     |                           |
+
+3. Choix d'un professionnel :
+☐ Laurent Tardif : Coût total ______ $☐ Anthony Lebrillant : Coût total ______$
+☐ Patrice Nierbier : Coût total ______ $☐ Mariane Léclair : Coût total ______$
+
+4. Coût total pour la journée :
+- Repas : ____________
+- Activité supplémentaire : ____________
+- Professionnel : ____________
+COÛT TOTAL : ____________`;
+
+    function GenerateurSP() {
+      // --- ÉTATS ---
+      const [objectif, setObjectif] = useState("");
+      const [cycle, setCycle] = useState(null);
+      const [annee, setAnnee] = useState(null);
+      
+      const [conceptsSelectionnes, setConceptsSelectionnes] = useState([]);
+      const [autresConcepts, setAutresConcepts] = useState("");
+      const [exclureConceptsNonCoches, setExclureConceptsNonCoches] = useState(false);
+      
+      const [visuelsSelectionnes, setVisuelsSelectionnes] = useState([]);
+      const [exclureVisuelsNonCoches, setExclureVisuelsNonCoches] = useState(false);
+      
+      const [modeDifferenciation, setModeDifferenciation] = useState("");
+      const [diffSelectionnees, setDiffSelectionnees] = useState([]);
+      
+      const [lieu, setLieu] = useState("");
+      const [lieuAutre, setLieuAutre] = useState("");
+      const [theme, setTheme] = useState("");
+      const [themeAutre, setThemeAutre] = useState("");
+      
+      const [nbEtapes, setNbEtapes] = useState("");
+      const [modeleRef, setModeleRef] = useState("");
+      
+      const [ton, setTon] = useState("");
+      
+      const [promptGenere, setPromptGenere] = useState("");
+      const [afficherResultat, setAfficherResultat] = useState(false);
+
+      // Liste unique des catégories principales
+      const categoriesUniques = [...new Set(CONCEPTS.map(c => c.categorie))];
+
+      // --- LOGIQUE DE SÉLECTION ---
+      const handleConceptToggle = (id) => {
+        setConceptsSelectionnes(prev => 
+          prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
+        );
+      };
+
+      const handleVisuelToggle = (visuel) => {
+        setVisuelsSelectionnes(prev => 
+          prev.includes(visuel) ? prev.filter(v => v !== visuel) : [...prev, visuel]
+        );
+      };
+
+      const handleDiffToggle = (diff) => {
+        setDiffSelectionnees(prev => 
+          prev.includes(diff) ? prev.filter(d => d !== diff) : [...prev, diff]
+        );
+      };
+
+      // --- LOGIQUE POUR EFFACER LES CHOIX ---
+      // Nous avons retiré window.confirm car il est bloqué par l'environnement de prévisualisation
+      const reinitialiserChoix = () => {
+        setObjectif("");
+        setCycle(null);
+        setAnnee(null);
+        setConceptsSelectionnes([]);
+        setAutresConcepts("");
+        setExclureConceptsNonCoches(false);
+        setVisuelsSelectionnes([]);
+        setExclureVisuelsNonCoches(false);
+        setModeDifferenciation("");
+        setDiffSelectionnees([]);
+        setLieu("");
+        setLieuAutre("");
+        setTheme("");
+        setThemeAutre("");
+        setNbEtapes("");
+        setModeleRef("");
+        setTon("");
+        setPromptGenere("");
+        setAfficherResultat(false);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+
+      // --- LOGIQUE STRICTE D'AFFICHAGE DES CONCEPTS ---
+      const getConceptStyle = (anneesBleues, anneeSelected, cycleSelected) => {
+        if (!anneeSelected || !cycleSelected) return "hidden";
+
+        // 1. L'année correspond à la finalisation du concept => BLEU
+        if (anneesBleues.includes(anneeSelected)) {
+          return "text-blue-600 font-bold bg-blue-50"; 
+        }
+
+        // 2. L'année sœur (autre année du même cycle) correspond => GRAS
+        const anneeSibling = anneeSelected % 2 === 1 ? anneeSelected + 1 : anneeSelected - 1;
+        if (anneesBleues.includes(anneeSibling)) {
+          return "text-gray-900 font-bold hover:bg-gray-100";
+        }
+
+        // 3. Concept finalisé dans un cycle PRÉCÉDENT => GRIS (Moins foncé)
+        const maxAnnee = Math.max(...anneesBleues);
+        const maxCycle = Math.ceil(maxAnnee / 2);
+        if (maxCycle < cycleSelected) {
+          return "text-gray-500 opacity-75 hover:opacity-100"; 
+        }
+
+        // 4. Cas spécial des concepts s'étalant sur plusieurs cycles
+        const minAnnee = Math.min(...anneesBleues);
+        const minCycle = Math.ceil(minAnnee / 2);
+        if (minCycle < cycleSelected) {
+           return "text-gray-500 opacity-75 hover:opacity-100";
+        }
+
+        return "hidden"; 
+      };
+
+      // --- GÉNÉRATION DU PROMPT ---
+      const genererPrompt = () => {
+        if (!cycle || !annee || !objectif) {
+          alert("Veuillez au moins sélectionner un objectif, un cycle et une année.");
+          return;
+        }
+
+        const nomsConcepts = CONCEPTS.filter(c => conceptsSelectionnes.includes(c.id)).map(c => `- ${c.texte}`);
+        if (autresConcepts.trim() !== "") {
+          nomsConcepts.push(`- Autres concepts ajoutés manuellement : ${autresConcepts}`);
+        }
+
+        const vraiLieu = lieu === "Autre" ? lieuAutre : lieu;
+        const vraiTheme = theme === "Autre" ? themeAutre : theme;
+
+        const prompt = `CONSIGNE POUR L'IA :
+Agis comme un développeur et concepteur pédagogique expert en mathématiques pour le primaire. Ta mission est de produire une situation-problème mathématique parfaite, conforme aux standards du PFEQ.
+
+=========================================
+1️⃣ CONTEXTE ET RÔLE
+Je suis un(e) Enseignant(e) du primaire. Agir comme un concepteur pour créer un nouveau problème.
+Nous travaillons en Mathématique pour le ${cycle}e cycle du primaire (${annee}e année).
+Objectif de la tâche : ${objectif}
+
+=========================================
+2️⃣ RÈGLES STRICTES DE LA SITUATION-PROBLÈME (COMPÉTENCE 1)
+
+Définition opérationnelle :
+Une situation-problème est une tâche complexe dans laquelle la solution ne peut pas être obtenue par l’application directe d’une procédure connue. Elle exige une construction progressive de la solution, fondée sur une démarche où chaque étape dépend réellement des précédentes.
+
+CRITÈRES OBLIGATOIRES À RESPECTER À LA LETTRE :
+- Présence de données, de contraintes et d’un but explicite (obligeant l'élève à organiser l'information).
+- Étapes interdépendantes et communicantes : Le résultat d’une étape est nécessaire pour réaliser la suivante. Si une étape est supprimée, la suite devient impossible.
+- Effet structurant des choix : L’élève doit faire des choix ayant un impact direct sur la suite.
+- Construction progressive : La solution finale émerge graduellement (ajustements, validations).
+- Possibilité d'erreurs : La situation doit permettre plusieurs démarches, des fausses pistes plausibles, et révéler des erreurs conceptuelles/procédurales.
+
+INTERDICTIONS ABSOLUES (MÉTA-CONSIGNES PÉDAGOGIQUES) :
+1. Interdiction des formulations prescriptives : Ne jamais utiliser de formulations adressées directement à l’élève telles que : « Tu dois… », « Calcule… », « Détermine… », « Trouve… », « Identifie… », « Prouve… », « Établis… ». Aucune consigne ne doit indiquer explicitement l’action mathématique à poser.
+2. Présentation narrative : Présenter uniquement un contexte narratif crédible, les données, les contraintes et l'objectif global. Intégrer les informations naturellement.
+3. Grands titres neutres obligatoires : Utiliser des titres généraux pour structurer (ex: "Mise en place du projet", "Données disponibles"). Interdiction d'utiliser : "Calcul de...", "Étape 1...", "Détermination de...".
+4. Absence de séquençage procédural : Ne pas structurer en étapes logiques explicites ni suggérer l'ordre des opérations.
+
+=========================================
+3️⃣ STRUCTURE DE "TA TÂCHE CONSISTE À..." (OBLIGATION ABSOLUE)
+La section expliquant la mission de l'élève (généralement intitulée "Ta tâche consiste à..." ou "Ton mandat...") DOIT IMPÉRATIVEMENT être présentée sous forme de liste à puces (points de forme).
+Exemple de format attendu :
+Ta tâche consiste à :
+- Calculer le nombre d'élèves.
+- Calculer le coût des activités.
+- Calculer le coût du transport.
+- Déterminer le coût total.
+(Ceci est un exemple, tu dois absolument adapter les points de cette liste aux exigences spécifiques et implicites du problème que tu as créé).
+
+=========================================
+4️⃣ PARAMÈTRES PÉDAGOGIQUES CIBLÉS
+Concepts mathématiques à intégrer :
+${nomsConcepts.length > 0 ? nomsConcepts.join('\n') : "Aucun concept spécifique sélectionné."}
+
+${exclureConceptsNonCoches && nomsConcepts.length > 0 ? `CONTRAINTE D'EXCLUSION :
+IMPORTANT : Tu dois intégrer STRICTEMENT et UNIQUEMENT ces concepts mathématiques dans le problème. Remplace les concepts existants du modèle par ces nouveaux concepts tout en respectant scrupuleusement le schéma.
+Tous les concepts mathématiques NON listés ci-dessus doivent être systématiquement retirés ou évités.` : ""}
+
+=========================================
+5️⃣ SUPPORTS VISUELS
+Supports visuels exigés :
+${visuelsSelectionnes.length > 0 ? visuelsSelectionnes.map(v => `- ${v}`).join('\n') : "Aucun support visuel demandé."}
+
+${exclureVisuelsNonCoches ? "Contrainte stricte : Exclure systématiquement tous les supports visuels non cochés ci-dessus." : ""}
+
+${visuelsSelectionnes.length > 0 ? `PRODUCTION VISUELLE REQUISE (DANS LA ZONE 2 UNIQUEMENT) :
+Crée précisément les éléments visuels demandés exclusivement en SVG vectoriel pur.
+Rendu mathématiquement exact, visuellement parfait et professionnel.
+INTERDICTIONS : Aucun format raster (PNG/JPG), aucun CSS externe, aucune image, aucun effet, aucune distorsion. 
+CONVENTIONS : Axes perpendiculaires, graduations régulières, proportions exactes. Police Arial/Helvetica intégrée sans 'transform'.` : ""}
+
+=========================================
+6️⃣ DIFFÉRENCIATION
+${modeDifferenciation ? `Action : ${modeDifferenciation}
+Ajustements :
+${diffSelectionnees.map(d => `- ${d}`).join('\n')}` : "Aucune différenciation spécifique."}
+
+=========================================
+7️⃣ CONTEXTE ET STRUCTURE
+- Lieu : ${vraiLieu || "Non spécifié"}
+- Thème : ${vraiTheme || "Non spécifié"}
+- Nombre de grandes étapes (implicites) : ${nbEtapes || "Non spécifié"}
+- Modèle de référence : ${modeleRef || "Non spécifié"}
+
+=========================================
+8️⃣ FORMAT ET TON
+- Format de réponse : HTML (.html).
+Génère le résultat sous forme d'un code HTML complet, autonome et prêt à l'emploi. Utilise du CSS pour rendre le document esthétique (couleurs douces comme l'orange ou le violet pour les titres), clair et structuré (encadrés, colonnes). Les dessins géométriques ou diagrammes doivent être intégrés (via SVG ou style CSS).
+- Ton : ${ton || "Standard"}
+
+=========================================
+9️⃣ MÉTA-CONSIGNES DE SORTIE ET CAHIER DE RÉPONSES
+Le document HTML généré doit être divisé visuellement en deux zones exploitables :
+- ZONE 1 : Texte narratif et données du problème.
+- ZONE 2 : Éléments visuels (SVG) structurés avec titre, type, objectif.
+
+CAHIER DE RÉPONSES (OBLIGATOIRE ET ADAPTATIF) :
+À la fin du problème HTML, tu dois impérativement inclure un "Cahier de réponses" vierge.
+Tu DOIS déduire et te servir de ton intelligence IA pour produire un cahier de réponses parfait et en lien direct avec le problème généré (espaces de calculs proportionnels, tableaux de compilation utiles à l'élève, zones de dessins, etc.). Ce cahier doit correspondre à la structure logique des étapes que l'élève devra suivre.
+- Interdiction absolue : Ne JAMAIS inclure de corrigé ou de réponses pré-remplies dans le document final. Seulement le problème et le cahier de réponses vierge.
+
+MODÈLE DE RÉFÉRENCE POUR LE FORMAT ATTENDU :
+Voici un exemple montrant le niveau de détail, l'utilisation de tableaux et de cases à cocher attendus. Tu ne dois pas copier ce texte bêtement, mais t'en inspirer fortement pour concevoir de toute pièce le cahier adapté au problème que tu viens de créer :
+\n${EXEMPLE_CAHIER_DEFAUT}`;
+
+        setPromptGenere(prompt);
+        setAfficherResultat(true);
+        
+        setTimeout(() => {
+          window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }, 100);
+      };
+
+      const copyToClipboard = () => {
+        try {
+          const textArea = document.createElement("textarea");
+          textArea.value = promptGenere;
+          textArea.style.top = "0";
+          textArea.style.left = "0";
+          textArea.style.position = "fixed";
+          textArea.style.opacity = "0";
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          const successful = document.execCommand('copy');
+          document.body.removeChild(textArea);
+          if (successful) {
+            alert("Requête copiée avec succès ! Vous pouvez la coller dans l'IA.");
+          } else {
+            alert("L'action de copie a échoué.");
+          }
+        } catch (err) {
+          console.error('Erreur lors de la copie :', err);
+        }
+      };
+
+      return (
+        <div className="min-h-screen p-4 md:p-8">
+          <div className="max-w-4xl mx-auto space-y-8">
+            
+            <header className="bg-gradient-to-r from-blue-900 to-indigo-900 text-white p-8 rounded-2xl shadow-xl text-center">
+              <h1 className="text-4xl font-extrabold mb-3">Générateur de Situations-Problèmes</h1>
+              <p className="text-blue-200 text-lg">Créez la requête IA parfaite, 100% conforme aux exigences de la Compétence 1 (PFEQ).</p>
+            </header>
+
+            <main className="space-y-6">
+              
+              {/* SECTION 1: OBJECTIF */}
+              <section className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                <h2 className="text-xl font-bold text-indigo-900 mb-4 border-b pb-2">1. Objectif pédagogique</h2>
+                <select 
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-gray-50"
+                  value={objectif}
+                  onChange={e => setObjectif(e.target.value)}
+                >
+                  <option value="">Sélectionner un objectif...</option>
+                  {OBJECTIFS.map(obj => <option key={obj} value={obj}>{obj}</option>)}
+                </select>
+              </section>
+
+              {/* SECTION 2: NIVEAU */}
+              <section className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                <h2 className="text-xl font-bold text-indigo-900 mb-4 border-b pb-2">2. Niveau scolaire</h2>
+                <div className="flex flex-wrap gap-3 mb-4">
+                  {CYCLES.map(c => (
+                    <button 
+                      key={c.id}
+                      onClick={() => { setCycle(c.id); setAnnee(null); setConceptsSelectionnes([]); }}
+                      className={`px-5 py-2.5 rounded-lg font-semibold transition-all ${cycle === c.id ? 'bg-indigo-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                    >
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+                {cycle && (
+                  <div className="flex flex-wrap gap-3 animate-fade-in p-4 bg-indigo-50 rounded-lg border border-indigo-100">
+                    <span className="text-indigo-900 font-medium self-center mr-2">Année :</span>
+                    {CYCLES.find(c => c.id === cycle).annees.map(a => (
+                      <button 
+                        key={a.id}
+                        onClick={() => setAnnee(a.id)}
+                        className={`px-4 py-2 rounded-lg font-medium transition-all ${annee === a.id ? 'bg-green-600 text-white shadow-md' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+                      >
+                        {a.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              {/* SECTION 3: CONCEPTS */}
+              <section className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                <h2 className="text-xl font-bold text-indigo-900 mb-2 border-b pb-2">3. Concepts mathématiques à intégrer</h2>
+                
+                {!annee ? (
+                  <p className="text-amber-600 bg-amber-50 p-3 rounded-lg border border-amber-200">Veuillez d'abord sélectionner une année scolaire ci-dessus.</p>
+                ) : (
+                  <>
+                    <p className="text-sm text-gray-600 mb-4 bg-gray-50 p-3 rounded-lg border">
+                      Légende d'affichage : <br/>
+                      <span className="text-blue-600 font-bold bg-blue-50 px-1 rounded">Bleu</span> = Finalisation dans l'année sélectionnée<br/>
+                      <span className="font-bold text-gray-900">Gras</span> = Autre année du même cycle<br/>
+                      <span className="text-gray-500">Gris</span> = Concepts des cycles précédents
+                    </p>
+
+                    <div className="space-y-6 max-h-[32rem] overflow-y-auto pr-2 custom-scrollbar">
+                      {categoriesUniques.map(categorie => {
+                        const conceptsDeCategorie = CONCEPTS.filter(c => c.categorie === categorie);
+                        
+                        const isCategorieVisible = conceptsDeCategorie.some(c => getConceptStyle(c.anneesBleues, annee, cycle) !== "hidden");
+                        if (!isCategorieVisible) return null;
+
+                        const sousCategories = [...new Set(conceptsDeCategorie.map(c => c.sousCategorie))];
+
+                        return (
+                          <div key={categorie} className="border rounded-xl overflow-hidden bg-white shadow-sm border-gray-200">
+                            <h3 className="font-extrabold text-white bg-indigo-800 px-4 py-3 uppercase tracking-wider text-sm">
+                              {categorie}
+                            </h3>
+                            
+                            <div className="p-4 space-y-6 bg-gray-50/50">
+                              {sousCategories.map(sousCat => {
+                                const conceptsDuSousDomaine = conceptsDeCategorie.filter(c => c.sousCategorie === sousCat);
+                                const isSousCatVisible = conceptsDuSousDomaine.some(c => getConceptStyle(c.anneesBleues, annee, cycle) !== "hidden");
+                                
+                                if (!isSousCatVisible) return null;
+
+                                return (
+                                  <div key={sousCat} className="border-l-4 border-indigo-400 pl-4 ml-1">
+                                    <h4 className="font-bold text-indigo-900 bg-indigo-100 px-3 py-1.5 mb-3 rounded-r shadow-sm inline-block text-sm">
+                                      {sousCat}
+                                    </h4>
+                                    <div className="space-y-1.5 mt-1">
+                                      {conceptsDuSousDomaine.map(concept => {
+                                        const styleClass = getConceptStyle(concept.anneesBleues, annee, cycle);
+                                        if (styleClass === "hidden") return null;
+
+                                        return (
+                                          <label key={concept.id} className={`flex items-start space-x-3 cursor-pointer p-2 rounded-lg transition-colors border border-transparent hover:border-gray-200 bg-white ${styleClass}`}>
+                                            <input 
+                                              type="checkbox" 
+                                              className="mt-1 w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500 border-gray-300"
+                                              checked={conceptsSelectionnes.includes(concept.id)}
+                                              onChange={() => handleConceptToggle(concept.id)}
+                                            />
+                                            <span className="leading-snug pt-0.5 text-sm">{concept.texte}</span>
+                                          </label>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="mt-6">
+                      <label className="block text-sm font-bold text-gray-700 mb-2">Autres concepts (non listés) :</label>
+                      <input 
+                        type="text" 
+                        placeholder="Tapez vos propres concepts mathématiques à intégrer ici..." 
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-gray-50"
+                        value={autresConcepts}
+                        onChange={e => setAutresConcepts(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="mt-6 p-4 bg-red-50 rounded-lg border border-red-200">
+                      <label className="flex items-center space-x-3 cursor-pointer text-red-800 font-bold">
+                        <input type="checkbox" checked={exclureConceptsNonCoches} onChange={e => setExclureConceptsNonCoches(e.target.checked)} className="w-5 h-5 text-red-600 rounded border-red-300" />
+                        <span>Contrainte stricte : Exclure systématiquement tous les concepts non cochés</span>
+                      </label>
+                    </div>
+                  </>
+                )}
+              </section>
+
+              {/* SECTION 4: VISUELS */}
+              <section className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                <h2 className="text-xl font-bold text-indigo-900 mb-4 border-b pb-2">4. Supports visuels (SVG)</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                  {SUPPORTS_VISUELS.map(visuel => (
+                    <label key={visuel} className="flex items-center space-x-3 cursor-pointer p-2 hover:bg-gray-50 rounded border border-transparent hover:border-gray-200">
+                      <input type="checkbox" checked={visuelsSelectionnes.includes(visuel)} onChange={() => handleVisuelToggle(visuel)} className="w-5 h-5 text-indigo-600 rounded border-gray-300" />
+                      <span className="text-gray-700">{visuel}</span>
+                    </label>
+                  ))}
+                </div>
+                <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+                  <label className="flex items-center space-x-3 cursor-pointer text-red-800 font-bold">
+                    <input type="checkbox" checked={exclureVisuelsNonCoches} onChange={e => setExclureVisuelsNonCoches(e.target.checked)} className="w-5 h-5 text-red-600 rounded border-red-300" />
+                    <span>Contrainte stricte : Exclure systématiquement les supports non cochés</span>
+                  </label>
+                </div>
+              </section>
+
+              {/* SECTION 5: DIFFÉRENCIATION */}
+              <section className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                <h2 className="text-xl font-bold text-indigo-900 mb-4 border-b pb-2">5. Différenciation</h2>
+                <select className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 bg-gray-50 mb-4" value={modeDifferenciation} onChange={e => setModeDifferenciation(e.target.value)}>
+                  <option value="">Sélectionner une approche...</option>
+                  <option value="Modifier le problème déposé en pièce jointe sans toucher au niveau de difficulté">Modifier une pièce jointe (Même niveau)</option>
+                  <option value="Créer une nouvelle situation problème sans modèle">Créer sans modèle</option>
+                  <option value="Reproduire exactement le même problème en changeant le niveau de difficulté">Reproduire en changeant la difficulté</option>
+                </select>
+                
+                {modeDifferenciation === "Reproduire exactement le même problème en changeant le niveau de difficulté" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-indigo-50 p-4 rounded-lg border border-indigo-100">
+                    {DIFFERENCIATIONS.map(diff => (
+                      <label key={diff} className="flex items-center space-x-3 cursor-pointer">
+                        <input type="checkbox" checked={diffSelectionnees.includes(diff)} onChange={() => handleDiffToggle(diff)} className="w-4 h-4 text-indigo-600 rounded border-gray-300" />
+                        <span className="text-sm text-indigo-900">{diff}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              {/* SECTION 6: CONTEXTE ET STRUCTURE */}
+              <section className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                <h2 className="text-xl font-bold text-indigo-900 mb-4 border-b pb-2">6. Contexte et Structure</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Lieu de l'action</label>
+                      <select className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50" value={lieu} onChange={e => setLieu(e.target.value)}>
+                        <option value="">Sélectionner...</option>
+                        {LIEUX.map(l => <option key={l} value={l}>{l}</option>)}
+                      </select>
+                      {lieu === "Autre" && <input type="text" placeholder="Précisez le lieu" className="mt-2 w-full p-3 border border-gray-300 rounded-lg" value={lieuAutre} onChange={e => setLieuAutre(e.target.value)} />}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Thème narratif</label>
+                      <select className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50" value={theme} onChange={e => setTheme(e.target.value)}>
+                        <option value="">Sélectionner...</option>
+                        {THEMES.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                      {theme === "Autre" && <input type="text" placeholder="Précisez le thème" className="mt-2 w-full p-3 border border-gray-300 rounded-lg" value={themeAutre} onChange={e => setThemeAutre(e.target.value)} />}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Ton et Vocabulaire</label>
+                      <select className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50" value={ton} onChange={e => setTon(e.target.value)}>
+                        <option value="">Sélectionner le niveau de vocabulaire...</option>
+                        {TONS.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Nombre d'étapes (implicites)</label>
+                      <select className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50" value={nbEtapes} onChange={e => setNbEtapes(e.target.value)}>
+                        <option value="">Sélectionner...</option>
+                        {[2,3,4,5,6,7].map(n => <option key={n} value={`${n} étapes`}>{n} étapes</option>)}
+                        <option value="plus de 7 étapes">Plus de 7 étapes</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Canevas de référence</label>
+                      <select className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50" value={modeleRef} onChange={e => setModeleRef(e.target.value)}>
+                        <option value="">Sélectionner...</option>
+                        <option value="Option 1 : mise en situation - Étapes du problème - Ta tâche consiste à…">Option 1 : Mise en situation ➔ Étapes ➔ Ta tâche consiste à</option>
+                        <option value="Option 2 : mise en situation - Ta tâche consiste à… - Étapes du problème">Option 2 : Mise en situation ➔ Ta tâche consiste à ➔ Étapes</option>
+                      </select>
+                    </div>
+                  </div>
+
+                </div>
+              </section>
+
+              {/* BOUTON GÉNÉRER */}
+              <div className="text-center pt-6 pb-12">
+                <button 
+                  onClick={genererPrompt}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-xl font-bold text-xl shadow-lg transition-transform transform hover:scale-105"
+                >
+                  🚀 Générer la requête IA
+                </button>
+              </div>
+
+              {/* RÉSULTAT */}
+              {afficherResultat && (
+                <section className="bg-gray-900 p-8 rounded-2xl shadow-2xl animate-fade-in border-t-8 border-green-500">
+                  <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                    <h2 className="text-2xl font-bold text-white flex items-center">
+                      <span className="bg-green-400 w-4 h-4 rounded-full mr-3 animate-pulse"></span>
+                      Requête finale prête
+                    </h2>
+                    
+                    {/* BOUTONS D'ACTION (COPIER / EFFACER) */}
+                    <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto mt-4 md:mt-0">
+                      <button 
+                        onClick={reinitialiserChoix}
+                        className="bg-red-600 hover:bg-red-500 text-white px-5 py-3 rounded-lg font-bold shadow-lg transition-colors flex items-center justify-center"
+                      >
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        Effacer tout
+                      </button>
+                      
+                      <button 
+                        onClick={copyToClipboard}
+                        className="bg-green-600 hover:bg-green-500 text-white px-6 py-3 rounded-lg font-bold shadow-lg transition-colors flex items-center justify-center"
+                      >
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                        Copier la requête
+                      </button>
+                    </div>
+
+                  </div>
+                  <p className="text-gray-400 text-sm mb-4">
+                    Collez ce texte exactement tel quel dans ChatGPT, Claude ou Gemini. Il contient toutes les directives strictes, les interdictions pédagogiques et vos paramètres.
+                  </p>
+                  <textarea 
+                    className="w-full h-96 bg-gray-800 text-green-400 font-mono text-sm p-5 rounded-lg border border-gray-700 focus:outline-none focus:border-green-500 resize-y custom-scrollbar"
+                    readOnly
+                    value={promptGenere}
+                  />
+                </section>
+              )}
+
+            </main>
+          </div>
+        </div>
+      );
+    }
+
+    // Montage de l'application React dans la page HTML
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<GenerateurSP />);
+  </script>
+</body>
+</html>
