@@ -251,6 +251,7 @@
           { id: "f10", categorie: "A. ARITHMÉTIQUE", sousCategorie: "2. Fractions", texte: "Ordonner des fractions (dénominateurs identiques ou multiples) (2e et 3e cycles)", anneesBleues: [4, 6] },
           { id: "f11", categorie: "A. ARITHMÉTIQUE", sousCategorie: "2. Fractions", texte: "Situer des fractions sur un axe (2e et 3e cycles)", anneesBleues: [4, 5] },
           { id: "f12", categorie: "A. ARITHMÉTIQUE", sousCategorie: "2. Fractions", texte: "Reconnaître des fractions irréductibles (3e cycle)", anneesBleues: [6] },
+          { id: "f13", categorie: "A. ARITHMÉTIQUE", sousCategorie: "2. Fractions", texte: "La fraction d’un ensemble. Exemple : C’est le fait d’utiliser des fractions pour représenter des parties d’un groupe complet. On partage un ensemble (ex. 48 personnes) en parts égales et chaque fraction indique combien de personnes appartiennent à chaque catégorie. On peut ensuite trouver le nombre d’éléments dans chaque part et déterminer le reste.", anneesBleues: [1, 2, 3, 4, 5, 6] },
           { id: "d1", categorie: "A. ARITHMÉTIQUE", sousCategorie: "3. Nombres décimaux", texte: "Représenter des nombres décimaux (matériel concret ou dessins) (2e et 3e cycles)", anneesBleues: [3, 5] },
           { id: "d2", categorie: "A. ARITHMÉTIQUE", sousCategorie: "3. Nombres décimaux", texte: "Reconnaître des représentations équivalentes de nombres décimaux (2e et 3e cycles)", anneesBleues: [4, 5] },
           { id: "d3", categorie: "A. ARITHMÉTIQUE", sousCategorie: "3. Nombres décimaux", texte: "Lire et écrire des nombres écrits en notation décimale (2e et 3e cycles)", anneesBleues: [3, 5] },
@@ -365,11 +366,25 @@
             // Remplir les cases à cocher visuels
             const visList = document.getElementById('visuels-list');
             SUPPORTS_VISUELS.forEach(v => {
+                let extraHtml = '';
+                if (v === "Représentation de fractions") {
+                    extraHtml = `
+                        <div id="sub-fraction-container" style="display: none;" class="w-full mt-2 pl-8 pr-2 pb-2">
+                            <label class="flex items-start space-x-3 cursor-pointer p-3 bg-indigo-50 rounded-lg border border-indigo-100">
+                                <input type="checkbox" id="fraction-vierge" class="mt-1 w-4 h-4 text-indigo-600 rounded border-gray-300" />
+                                <span class="text-sm text-indigo-900 leading-snug">Représentation vierge de fractions afin que l'élève puisse manipuler (exemple : des portions de pizzas à colorier, des bandes fractionnées à colorier, des objets représentés à colorier)</span>
+                            </label>
+                        </div>
+                    `;
+                }
                 visList.insertAdjacentHTML('beforeend', `
-                    <label class="flex items-center space-x-3 cursor-pointer p-2 hover:bg-gray-50 rounded border border-transparent hover:border-gray-200">
-                        <input type="checkbox" value="${v}" class="w-5 h-5 text-indigo-600 rounded border-gray-300" />
-                        <span class="text-gray-700">${v}</span>
-                    </label>
+                    <div class="flex flex-col justify-start">
+                        <label class="flex items-center space-x-3 cursor-pointer p-2 hover:bg-gray-50 rounded border border-transparent hover:border-gray-200">
+                            <input type="checkbox" value="${v}" class="w-5 h-5 text-indigo-600 rounded border-gray-300" />
+                            <span class="text-gray-700">${v}</span>
+                        </label>
+                        ${extraHtml}
+                    </div>
                 `);
             });
 
@@ -403,8 +418,21 @@
             });
             document.getElementById('visuels-list').addEventListener('change', (e) => {
                 if (e.target.tagName === 'INPUT' && e.target.type === 'checkbox') {
+                    if (e.target.id === 'fraction-vierge') return; // Géré séparément lors de la génération
+                    
                     if (e.target.checked) selectedVisuels.add(e.target.value);
                     else selectedVisuels.delete(e.target.value);
+                    
+                    // Afficher/Masquer la sous-option des fractions
+                    if (e.target.value === "Représentation de fractions") {
+                        const subContainer = document.getElementById('sub-fraction-container');
+                        if (subContainer) {
+                            subContainer.style.display = e.target.checked ? 'block' : 'none';
+                            if (!e.target.checked) {
+                                document.getElementById('fraction-vierge').checked = false;
+                            }
+                        }
+                    }
                 }
             });
             document.getElementById('diff-list').addEventListener('change', (e) => {
@@ -561,6 +589,9 @@
             document.getElementById('modele-ref').value = "";
             
             document.querySelectorAll('#visuels-list input[type="checkbox"]').forEach(cb => cb.checked = false);
+            const subFractionContainer = document.getElementById('sub-fraction-container');
+            if (subFractionContainer) subFractionContainer.style.display = 'none';
+            
             document.querySelectorAll('#diff-list input[type="checkbox"]').forEach(cb => cb.checked = false);
             document.getElementById('diff-container').style.display = 'none';
             
@@ -592,6 +623,11 @@
             const exclureConcepts = document.getElementById('exclure-concepts').checked;
             
             const visuelsArr = Array.from(selectedVisuels);
+            const fractionViergeCb = document.getElementById('fraction-vierge');
+            if (fractionViergeCb && fractionViergeCb.checked && selectedVisuels.has("Représentation de fractions")) {
+                visuelsArr.push("Représentation vierge de fractions afin que l'élève puisse manipuler (exemple : des portions de pizzas à colorier, des bandes fractionnées à colorier, des objets représentés à colorier)");
+            }
+            
             const exclureVisuels = document.getElementById('exclure-visuels').checked;
             
             const modeDiff = document.getElementById('mode-diff').value;
